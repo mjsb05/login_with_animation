@@ -20,6 +20,26 @@ class _LoginScreenState extends State<LoginScreen> {
   SMITrigger? trigSuccess; //Animación de éxito
   SMITrigger? trigFail; //Animación de fallo
 
+  // 1) FocusNode
+  final emailFocus = FocusNode();
+  final passwordFocus = FocusNode();
+
+  //2) Listeners (oyentes/chismoso)
+  @override
+  void initState() {
+    super.initState();
+    emailFocus.addListener(() {
+      if (emailFocus.hasFocus) {
+        //manos abajo
+        isHandsUp?.change(false);
+      }
+    });
+    passwordFocus.addListener(() {
+      //Manos arriba en contraseña
+      isHandsUp?.change(passwordFocus.hasFocus);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     //para obtener el tamaño de la pantallla del disp
@@ -56,12 +76,15 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               //Espacio entre el oso y el texto medio
               const SizedBox(height: 10),
+
               //Campo de texto del email
               TextField(
+                //Llamar al foco
+                focusNode: emailFocus,
                 onChanged: (value) {
                   if (isHandsUp != null) {
                     //No tapar los ojos
-                    isHandsUp!.change(false);
+                    //isHandsUp!.change(false);
                   }
                   if (isChecking == null) return;
                   //Activa el modo chismoso
@@ -78,12 +101,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 10),
+
               //Campo para la contraseña
               TextField(
+                focusNode: passwordFocus,
                 onChanged: (value) {
                   if (isChecking != null) {
                     //No tapar los ojos
-                    isChecking!.change(false);
+                    //isChecking!.change(false);
                   }
                   if (isHandsUp == null) return;
                   //Activa el modo chismoso
@@ -164,5 +189,13 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  // 4) Liberaición de recursos
+  @override
+  void dispose() {
+    emailFocus.dispose();
+    passwordFocus.dispose();
+    super.dispose();
   }
 }
