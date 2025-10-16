@@ -32,6 +32,59 @@ class _LoginScreenState extends State<LoginScreen> {
   //3.2 Timer para detener la animación al dejar de escribirir
   Timer? _typingDebounce;
 
+  //4.1 Contollers; dice que es lo que el usuario escribió
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+
+  //4.2 Errores para mostrar en la UI
+  String? emailError;
+  String? passwordError;
+
+  //4.3 Validadores de mail y password
+  bool isValidEmail(String email) {
+    final re = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+    return re.hasMatch(email);
+  }
+
+  bool isValidPassword(String password) {
+    final re = RegExp(
+      r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$',
+    );
+    return re.hasMatch(password);
+  }
+
+  //4.4 Acción al botón
+  void _onLogin() {
+    final email = emailController.text.trim();
+    final password = passwordController.text;
+
+    //Recalcular errores
+    final eError = isValidEmail(email) ? null : 'Email no válido';
+    final pError = isValidPassword(password)
+        ? null
+        : 'Mínimo 8 caractéres, una mayúscula, una minúscula, un número y un símbolo';
+
+    //4.5 Para ver si hubo cambio
+    setState(() {
+      emailError = eError;
+      passwordError = pError;
+    });
+
+    //4.6 Cerrar el teclado y  bajar }
+    FocusScope.of(context).unfocus();
+    _typingDebounce?.cancel();
+    isChecking?.change(false);
+    isHandsUp?.change(false);
+    numLook?.value = 50; //Mirada neutra
+
+    //4.7 Activar triggers
+    if (eError == null && pError == null) {
+      trigSuccess?.fire();
+    } else {
+      trigFail?.fire();
+    }
+  }
+
   //2) Listeners (oyentes/chismoso)
   @override
   void initState() {
@@ -94,25 +147,28 @@ class _LoginScreenState extends State<LoginScreen> {
               TextField(
                 //Llamar al foco
                 focusNode: emailFocus,
-                onChanged: (value) {
-                  if (isHandsUp != null) {
-                    //"Estoy escribiendo"
-                    isChecking!.change(true);
 
-                    //Ajuste de límites de 0 a 100
-                    //el 90 es como una medida de calibración
-                    final look = (value.length / 90 * 100).clamp(0.0, 100.0);
-                    numLook?.change(look);
-                    //3.3 Debounce si vuelve a teclear, reiniciar el timer
-                    _typingDebounce?.cancel();
-                    _typingDebounce = Timer(const Duration(seconds: 3), () {
-                      if (!mounted) {
-                        return; //Si la pantalla se cierra
-                      }
-                      //Mirada neutra
-                      isChecking?.change(false);
-                    });
-                  }
+                //4.8 Enlazar el controlador
+                controller: emailController,
+                onChanged: (value) {
+                  //"Estoy escribiendo"
+                  isChecking!.change(true);
+
+                  //Ajuste de límites de 0 a 100
+                  //el 90 es como una medida de calibración
+                  final look = (value.length / 90 * 100).clamp(0.0, 100.0);
+                  numLook?.change(look);
+
+                  //3.3 Debounce si vuelve a teclear, reiniciar el timer
+                  _typingDebounce?.cancel();
+                  _typingDebounce = Timer(const Duration(seconds: 3), () {
+                    if (!mounted) {
+                      return; //Si la pantalla se cierra
+                    }
+                    //Mirada neutra
+                    isChecking?.change(false);
+                  });
+
                   if (isChecking == null) return;
                   //Activa el modo chismoso
                   isChecking!.change(true);
@@ -120,6 +176,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 //para que el teclado sepa que es email
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
+                  //4.9 Mostrar error
+                  errorText: emailError,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -132,6 +190,9 @@ class _LoginScreenState extends State<LoginScreen> {
               //Campo para la contraseña
               TextField(
                 focusNode: passwordFocus,
+
+                //4.8 Enlazar el controlador
+                controller: passwordController,
                 onChanged: (value) {
                   if (isChecking != null) {
                     //No tapar los ojos
@@ -144,6 +205,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 //para que el teclado sepa que es password
                 obscureText: _isPasswordVisible,
                 decoration: InputDecoration(
+                  //4.9 Mostrar error
+                  errorText: passwordError,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -183,7 +246,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                onPressed: () {},
+                onPressed: _onLogin,
 
                 //TODO
                 child: const Text(
